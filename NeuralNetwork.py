@@ -6,20 +6,53 @@ from sklearn.metrics import classification_report, confusion_matrix
 
 # Fonction d'activation ReLU
 def Relu(z):
+    """
+    La fonction ReLU produit le maximum entre son entrée et zéro.
+    Si z < 0, retourne 0, sinon retourne z.
+    
+    Paramètres:
+    - z : peut être un scalaire, un vecteur ou une matrice (par exemple, une entrée d'un neurone)
+    
+    Retour:
+    - Un tableau numpy avec les activations, où toutes les valeurs inférieures à zéro sont remplacées par zéro.
+    """
     return np.maximum(0, z)
 
 # Dérivée de la fonction d'activation ReLU
 def relu_derivative(z):
+     """
+    La dérivée de la fonction ReLU est utilisée lors de la rétropropagation d'un réseau neuronal.
+    Si x > 0, la dérivée est 1, sinon 0.
+    
+    Paramètres:
+    - x : peut être un scalaire, un vecteur ou une matrice
+    
+    Retour:
+    - Un tableau numpy de la même forme que x avec des 1 où x > 0 et des 0 où x <= 0.
+    """
     resultat = (z > 0).astype(z.dtype)
     assert np.all((resultat == 0) | (resultat == 1)), "resultat doit être 0 ou 1"
     return resultat
 
 def sigmiode(z):
+    """ la fonction sigmiode permet de transformer un nombre a une valeur entre 0 et 1    """
+   
     assert isinstance(z, (int, float, list, np.ndarray)), "l'entrée doit être un nombre, une liste ou un tableau numpy"
     resultat = 1 / (1 + np.exp(-z))
     return resultat
 
 def sigmiode_derivative(z):
+    """
+    une fonction d'activation (ou sa dérivée) à l'entrée z.
+    
+    Paramètres :
+        * x : scalaire, liste ou np.array
+        * fonction : nom de la fonction d'activations sigmoid,tanh,relu)
+        * derivative : boolean par defaut est false , si True retourne la dérivée
+
+    Retourn :
+        Résultat de la fonction (ou sa dérivée)
+    """
     assert isinstance(z, (int, float, list, np.ndarray)), "L'entrée doit être un nombre, une liste ou un tableau numpy."
     result = sigmiode(z) * (1 - sigmiode(z))
     assert np.all((result >= 0) & (result <= 0.25)), "resultat doit être dans l'intervalle [0, 0.25]"
@@ -27,6 +60,14 @@ def sigmiode_derivative(z):
 
 # Classe NeuralNetwork
 class NeuralNetwork:
+    """ Initialize the neural network with given layer sizes and learning rate .
+    50 layer_sizes : List of integers [ input_size , hidden1_size ,
+    ... , output_size ]
+    51 
+    assert isinstance ( layer_sizes , list ) and len ( layer_sizes ) >= 2, " layer_sizes must be a list with at least 2 elements "
+    assert all( isinstance (size , int ) and size > 0 for size in layer_sizes ), "All layer sizes must be positive integers " 
+    assert isinstance ( (learning_rate , (int , float )) and learning_rate > 0), " Learning rate must be a positive number" 
+    """
     def __init__(self, layer_sizes, learning_rate=0.01):
         assert isinstance(layer_sizes, list) and len(layer_sizes) >= 2, "layer_sizes must be a list with at least 2 elements"
         assert all(isinstance(size, int) and size > 0 for size in layer_sizes), "All layer sizes must be positive integers"
@@ -47,6 +88,9 @@ class NeuralNetwork:
             self.biases.append(b)
 
     def forward(self, X):
+        """
+        Forward propagation : Z ^{[ l]} = A ^{[l -1]} W ^{[ l]} + b ^{[ l]}, A^{[ l]} = g(Z ^{[ l ]})
+        """
         assert isinstance(X, np.ndarray), "Input X must be a numpy array"
         assert X.shape[1] == self.layer_sizes[0], f"Input dimension ({X.shape[1]}) must match input layer size ({self.layer_sizes[0]})"
         self.activations = [X]
@@ -64,6 +108,9 @@ class NeuralNetwork:
         return output
 
     def compute_loss(self, y_true, y_pred):
+        """
+        Binary Cross - Entropy : J = -1/m * sum (y * log ( y_pred ) + (1- y) * log (1- y_pred )) 
+        """
         assert isinstance(y_true, np.ndarray) and isinstance(y_pred, np.ndarray), "Inputs to loss must be numpy arrays"
         assert y_true.shape == y_pred.shape, "y_true and y_pred must have the same shape"
         assert np.all((y_true == 0) | (y_true == 1)), "y_true must contain only 0s and 1s"
@@ -73,6 +120,9 @@ class NeuralNetwork:
         return loss
 
     def compute_accuracy(self, y_true, y_pred):
+        """
+        Compute accuracy : proportion of correct predictions
+        """
         assert isinstance(y_true, np.ndarray) and isinstance(y_pred, np.ndarray), "Inputs to accuracy must be numpy arrays"
         assert y_true.shape == y_pred.shape, "y_true and y_pred must have the same shape"
         preds = (y_pred >= 0.5).astype(int)
@@ -81,6 +131,9 @@ class NeuralNetwork:
         return accuracy
 
     def backward(self, X, y, outputs):
+        """
+        Backpropagation : compute dW ^{[l]}, db ^{[ l]} for each layer
+        """
         assert isinstance(X, np.ndarray) and isinstance(y, np.ndarray) and isinstance(outputs, np.ndarray), "Inputs to backward must be numpy arrays"
         assert X.shape[1] == self.layer_sizes[0], f"Input dimension ({X.shape[1]}) must match input layer size ({self.layer_sizes[0]})"
         assert y.shape == outputs.shape, "y and outputs must have the same shape"
@@ -101,6 +154,9 @@ class NeuralNetwork:
             self.biases[i] = self.biases[i] - self.learning_rate * self.d_biases[i]
 
     def train(self, X, y, X_val, y_val, epochs, batch_size):
+        """
+         Train the neural network using mini - batch SGD , with validation
+        """
         assert isinstance(X, np.ndarray) and isinstance(y, np.ndarray), "X and y must be numpy arrays"
         assert isinstance(X_val, np.ndarray) and isinstance(y_val, np.ndarray), "X_val and y_val must be numpy arrays"
         assert X.shape[1] == self.layer_sizes[0], f"Input dimension ({X.shape[1]}) must match input layer size ({self.layer_sizes[0]})"
@@ -136,6 +192,7 @@ class NeuralNetwork:
         return train_losses, val_losses, train_accuracies, val_accuracies
 
     def predict(self, X):
+        """ Predict class labels (0 or 1) """
         assert isinstance(X, np.ndarray), "Input X must be a numpy array"
         assert X.shape[1] == self.layer_sizes[0], f"Input dimension ({X.shape[1]}) must match input layer size ({self.layer_sizes[0]})"
         output = self.forward(X)
